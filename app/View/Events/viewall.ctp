@@ -1,14 +1,17 @@
 <?php
-foreach ($events as $event){
-	echo "[" . $event["Event"]["id"] .  "]";
-	echo $this->Html->link(
-			$event["Event"]["name"],
-			array('controller' => 'events', 'action' => 'view',"eventId" => $event["Event"]["id"])
-	);
-	echo "[" . $event["Group"]["name"] .  "]";
-	echo "<br>";
+foreach ($eventList as $groupId => $group) {
+	echo "<h1>";
+	echo $groupList[$groupId];
+	echo "</h1>";
+	foreach ($group as $eventId => $events) {
+		echo "[" . $eventId . "]";
+		echo $this->Html->link(
+				$events,
+				array('controller' => 'events', 'action' => 'view', "eventId" => $eventId)
+		);
+		echo "<br>";
+	}
 }
-
 
 echo $this->Html->link(
 		"新しいイベントを作成する",

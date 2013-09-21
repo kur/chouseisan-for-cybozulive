@@ -7,7 +7,7 @@ class CybozuLiveComponent extends Component {
  * @param unknown $oauthTokenSecret
  */
 	public function getUserinfo($oauthToken, $oauthTokenSecret) {
-		$oauth = $this->__getOauth($oauthRequestToken, $oauthRequestTokenSecret);
+		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
 
 		$result = $oauth
 		->sendRequest('https://api.cybozulive.com/api/group/V2',
@@ -25,7 +25,7 @@ class CybozuLiveComponent extends Component {
  * @return multitype:string
  */
 	public function getGroupList($oauthToken, $oauthTokenSecret) {
-		$oauth = $this->__getOauth($oauthRequestToken, $oauthRequestTokenSecret);
+		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
 
 		$result = $oauth
 		->sendRequest('https://api.cybozulive.com/api/group/V2',

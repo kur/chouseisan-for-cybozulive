@@ -6,6 +6,13 @@ class EventsController extends AppController {
 		"Event", "Group", "User", "Registration"
 	);
 
+	public $components = array('Auth', 'CybozuLive');
+	
+	
+	public function beforeFilter() {
+		parent::beforeFilter();
+		
+	}
 /**
  * イベントのリストを表示する(リダイレクト)
  */
@@ -16,10 +23,30 @@ class EventsController extends AppController {
 				));
 	}
 /**
- * イベントのリストを表示する
+ * 自分が所属しているグループのイベントリストを表示する
  */
 	public function viewall() {
-		$this->set('events', $this->Event->find('all'));
+		// 自分の所属するグループ一覧を取得する
+ 		$groupList = $this->__getGroupList($this->Auth->User());
+
+ 		// グループIDに一致するイベント一覧を取得する
+ 		// 検索式を作成する
+		foreach ($groupList as $groupId => $group) {
+			$tmp = array();
+			$tmp["Event.group_id"] = $groupId;
+			$conditions["OR"][] = $tmp;
+		}
+		$eventList = $this->Event->find('list',
+				array(
+						'conditions' => $conditions,
+						'fields' => array(
+								'Event.id', 'Event.name',
+								'Event.group_id'
+						),
+						'recursive' => -1
+				));
+		$this->set('groupList', $groupList);
+		$this->set('eventList', $eventList);
 	}
 /**
  * イベントの詳細を表示する
@@ -122,10 +149,44 @@ class EventsController extends AppController {
 		return $data;
 	}
 
+	private function  __getGroupList($User) {
+		$userinfo = $this->User->find('all', array(
+				'conditions' => array(
+						'user_uri' => $User["User"]["user_uri"]
+				),
+				'limit' => 1
+		));
+		$groupList =  $this->CybozuLive->getGroupList(
+				$userinfo[0]["User"]["oauth_token"],
+				$userinfo[0]["User"]["oauth_token_secret"]);
+		return $groupList;
+	}
 /**
  * 新しいイベントを作成する
  */
 	public function create() {
+		$User = $this->Auth->User();
+		if ($this->request->is('post')) {
+			$this->Event->create();
+			$this->request->data["Event"]["owner_id"] = $User["User"]["user_uri"];
+			var_dump($this->request->data);
+			if ($this->Event->save($this->request->data)) {
+				$this->Session->setFlash('イベントが作成されました');
+				$this->redirect(array(
+						'action' => 'index'
+					));
+			} else {
+				$this->Session->setFlash('イベントを作成できませんでした');
+			}
+		} else{
+			// Cybouzu Live からイベント一覧を取得
+			$groupList = $this->__getGroupList($User);
+			$this->set('groupList', $groupList);
+		}
+		
+		
+		
+		return;
 		if ($this->request->is('post')) {
 			$this->Event->create();
 			if ($this->Event->save($this->request->data)) {
@@ -141,7 +202,8 @@ class EventsController extends AppController {
 			->find('list', array(
 				'recursive' => -1
 			));
-		$this->set('groupList', $groupList);
+// 			var_dump($groupList);
+// 		$this->set('groupList', $groupList);
 	}
 
 }
