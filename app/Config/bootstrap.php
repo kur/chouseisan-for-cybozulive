@@ -107,4 +107,8 @@ CakeLog::config('error', array(
 	'types' => array('warning', 'error', 'critical', 'alert', 'emergency'),
 	'file' => 'error',
 ));
-require_once '../../vendors/autoload.php';
+if (file_exists('../../vendors/autoload.php')) {
+	require_once '../../vendors/autoload.php';
+} else {
+	echo "autoload require failed.";
+}
