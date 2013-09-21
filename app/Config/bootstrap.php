@@ -110,5 +110,10 @@ CakeLog::config('error', array(
 if (file_exists('../../vendors/autoload.php')) {
 	require_once '../../vendors/autoload.php';
 } else {
-	echo "autoload require failed.";
+	if (file_exists('../vendors/autoload.php')) {
+		require_once '../vendors/autoload.php';
+	} else {
+		echo "autoload require failed." . getcwd();
+	}
+
 }

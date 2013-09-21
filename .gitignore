@@ -1,13 +1,16 @@
 # User specific & automatically generated files #
 #################################################
 /app/Config/database.php
-#/app/tmp
+/app/tmp/
 /lib/Cake/Console/Templates/skel/tmp/
 /plugins
 /vendors
 /build
 /dist
 /tags
+.buildpath
+.project
+/.settings/
 
 # OS generated files #
 ######################
