@@ -224,14 +224,20 @@
 /**
  * A random string used in security hashing methods.
  */
-	//Configure::write('Security.salt', 'DYhG93b0qyJfIxfs2guVoUubWwvniR2G0FgaC9mi');
-	Configure::write('Security.salt', $_SERVER['SECURITY_SALT']);
+	if(!isset($_SERVER['SECURITY_SALT'])){
+		$_SERVER['SECURITY_SALT'] ="";
+	}
+	Configure::write('Security.salt', 'DYhG93b0qyJfIxfs2guVoUubWwvnidR2G0FgaC9mi' .$_SERVER['SECURITY_SALT']);
+	//Configure::write('Security.salt', $_SERVER['SECURITY_SALT']);
 	
 /**
  * A random numeric string (digits only) used to encrypt/decrypt strings.
  */
-	//Configure::write('Security.cipherSeed', '76859309657453542496749683645');
-	Configure::write('Security.cipherSeed', $_SERVER['SECURITY_CIPHERSEED']);
+	if(!isset($_SERVER['SECURITY_CIPHERSEED'])){
+		$_SERVER['SECURITY_CIPHERSEED'] ="";
+	}
+	Configure::write('Security.cipherSeed', '768593096574535424967496836425'.$_SERVER['SECURITY_CIPHERSEED']);
+	
 	
 
 /**

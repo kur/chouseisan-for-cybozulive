@@ -1,0 +1,23 @@
+{
+	"repositories": [
+        {
+            "type": "pear",
+            "vendor-alias":"cakephp",
+            "url": "pear.cakephp.org"
+            
+        },
+        {
+			"type":"pear",
+			"vendor-alias":"pear",
+			"url":"http://pear.php.net"
+		}
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*",
+        "pear/PHP_CodeSniffer": "*",
+        "cakephp/CakePHP_CodeSniffer":"*"
+    },
+    "config": {
+        "vendor-dir": "vendors"
+     }
+}
