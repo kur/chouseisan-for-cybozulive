@@ -7,11 +7,9 @@ class EventsController extends AppController {
 	);
 
 	public $components = array('Auth', 'CybozuLive');
-	
-	
+
 	public function beforeFilter() {
 		parent::beforeFilter();
-		
 	}
 /**
  * イベントのリストを表示する(リダイレクト)
@@ -27,10 +25,10 @@ class EventsController extends AppController {
  */
 	public function viewall() {
 		// 自分の所属するグループ一覧を取得する
- 		$groupList = $this->__getGroupList($this->Auth->User());
+		$groupList = $this->__getGroupList($this->Auth->User());
 
- 		// グループIDに一致するイベント一覧を取得する
- 		// 検索式を作成する
+		// グループIDに一致するイベント一覧を取得する
+		// 検索式を作成する
 		foreach ($groupList as $groupId => $group) {
 			$tmp = array();
 			$tmp["Event.group_id"] = $groupId;
@@ -132,7 +130,6 @@ class EventsController extends AppController {
 			$tmpRow[] = "";
 			$tableCells[] = $tmpRow;
 		}
-
 		$this->set('tableCells', $tableCells);
 	}
 
@@ -149,14 +146,14 @@ class EventsController extends AppController {
 		return $data;
 	}
 
-	private function  __getGroupList($User) {
+	private function __getGroupList($User) {
 		$userinfo = $this->User->find('all', array(
 				'conditions' => array(
 						'user_uri' => $User["User"]["user_uri"]
 				),
 				'limit' => 1
 		));
-		$groupList =  $this->CybozuLive->getGroupList(
+		$groupList = $this->CybozuLive->getGroupList(
 				$userinfo[0]["User"]["oauth_token"],
 				$userinfo[0]["User"]["oauth_token_secret"]);
 		return $groupList;
@@ -178,32 +175,10 @@ class EventsController extends AppController {
 			} else {
 				$this->Session->setFlash('イベントを作成できませんでした');
 			}
-		} else{
+		} else {
 			// Cybouzu Live からイベント一覧を取得
 			$groupList = $this->__getGroupList($User);
 			$this->set('groupList', $groupList);
 		}
-		
-		
-		
-		return;
-		if ($this->request->is('post')) {
-			$this->Event->create();
-			if ($this->Event->save($this->request->data)) {
-				$this->Session->setFlash('イベントが作成されました');
-				$this->redirect(array(
-						'action' => 'index'
-					));
-			} else {
-				$this->Session->setFlash('イベントを作成できませんでした');
-			}
-		}
-		$groupList = $this->Group
-			->find('list', array(
-				'recursive' => -1
-			));
-// 			var_dump($groupList);
-// 		$this->set('groupList', $groupList);
 	}
-
 }
