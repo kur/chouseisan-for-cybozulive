@@ -10,6 +10,6 @@ echo $this->Form->input("Event.description");
 <?php echo $this->Form->end('Create') ?>
 <?php 
 echo $this->Html->link(
-		"グループ管理",
-		array('controller' => 'groups', 'action' => 'add')
+		"イベント一覧",
+		array('controller' => 'events', 'action' => 'viewall')
 );
