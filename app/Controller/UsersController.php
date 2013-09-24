@@ -10,9 +10,9 @@ class UsersController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login');
-		$this->Auth->loginRedirect = array('controller' => 'users', 'action' => 'index');
+		$this->Auth->loginRedirect = array('controller' => 'users', 'action' => 'logined');
 		$this->Auth->logoutRedirect = array('controller' => '/', 'action' => 'index');
-		$this->Auth->allow('newregistration', 'callback');
+		$this->Auth->allow('callback', 'login');
 
 		$this->Auth->fields = array(
 				'username' => 'user_uri',
@@ -27,15 +27,30 @@ class UsersController extends AppController {
 	}
 
 	public function index() {
-		var_dump($this->Auth->User());
+		$this->redirect(array('controller' => 'pages',
+			'action' => 'home'));
 	}
 /**
  * ログイン
  */
-	public function login() {
-		// サイボウズLive認証URLを取得
-		$authorizationUrl = $this->CybozuLive->getAuthorizationUrl();
-		$this->redirect($authorizationUrl);
+	public function login($confirmed = false) {
+		if (isset($_GET["requesturl"])) {
+			$_SESSION["requestUrl"] = $_GET["requesturl"];
+		}
+		if ($confirmed) {
+			$authorizationUrl = $this->CybozuLive->getAuthorizationUrl();
+			$this->redirect($authorizationUrl);
+		}
+	}
+/**
+ * ログイン後の画面遷移
+ */
+	public function logined() {
+		if (isset($_SESSION["requestUrl"])) {
+			$this->redirect($_SESSION["requestUrl"]);
+		} else {
+			$this->redirect(array('controller' => 'users', 'action' => 'index'));
+		}
 	}
 /**
  * ログアウト
@@ -79,7 +94,7 @@ class UsersController extends AppController {
 		$logindata['User']["password"] = $this->Auth->password((string)$userinfo->uri);
 
 		if ($this->Auth->login($logindata)) {
-			$this->redirect(array('action' => 'index'));
+			$this->redirect(array('action' => 'logined'));
 		} else {
 			echo "error";
 		}

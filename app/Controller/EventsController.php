@@ -6,10 +6,13 @@ class EventsController extends AppController {
 		"Event", "Group", "User", "Registration"
 	);
 
-	public $components = array('Auth', 'CybozuLive');
+	public $components = array('Auth', 'CybozuLive', 'Session');
 
 	public function beforeFilter() {
 		parent::beforeFilter();
+		$requestUrl = "http://" . $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"];
+		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login',
+			'?' => array('requesturl' => $requestUrl));
 	}
 /**
  * イベントのリストを表示する(リダイレクト)
@@ -54,7 +57,7 @@ class EventsController extends AppController {
 		$eventId = $this->params['named']['eventId'];
 		$this->set('eventId', $eventId);
 
-		// イベントに関する情報を取得する
+		// イベントに関する情報を取得
 		$event = $this->Event
 			->find('all',
 				array(
@@ -63,8 +66,14 @@ class EventsController extends AppController {
 					), 'limit' => 1, 'recursive' => 2
 				));
 		$this->set('eventName', $event[0]["Event"]["name"]);
+		$this->set('eventOwnerId', $event[0]["Event"]["owner_id"]);
 		$this->set('eventDescription', $event[0]["Event"]["description"]);
 
+		// グループのメンバー一覧を取得
+		$User = $this->Auth->User();
+		$groupMember = $this->__getGroupMember($User, $event[0]["Event"]["group_id"]);
+		$this->set('userId', $groupMember["self"]);
+		$this->set('User', $User);
 		// テーブルヘッダーを生成
 		$tableHeaders[] = "";
 		foreach ($event[0]["Candidate"] as $candidate) {
@@ -86,51 +95,21 @@ class EventsController extends AppController {
 					)
 				));
 
+		// 回答を整形する
 		$tableData = array();
-		foreach ($event[0]["Group"]["User"] as $user) {
+		foreach ($groupMember["member"] as $key => $name) {
 			$tmpRow = array();
-			$tmpRow[] = $user["name"];
+			$tmpRow[] = $name;
 			foreach ($event[0]["Candidate"] as $candidate) {
-				if (isset($registrations[$user["id"]][$candidate["id"]])) {
-					$tmpRow[] = $registrations[$user["id"]][$candidate["id"]];
+				if (isset($registrations[$key][$candidate["id"]])) {
+					$tmpRow[] = $registrations[$key][$candidate["id"]];
 				} else {
 					$tmpRow[] = 0;
 				}
 			}
-			$tableData[$user["id"]] = $tmpRow;
+			$tableData[$key] = $tmpRow;
 		}
 		$this->set('tableData', $tableData);
-		return;
-
-		// テーブルデータを生成
-		$cntUsers = count($event[0]["Group"]["User"]);
-		$cntCandidates = count($event[0]["Candidate"]);
-		//var_dump($registrationData);
-
-		// [$userid][$candidate]の連想配列に
-		$registrationDataArray = $this
-			->__cteateRegistrationDataArray($registrationData);
-
-		$tableCells = array();
-		for ($i = 0; $i < $cntUsers; $i++) {
-			$tmpRow = array();
-			$tmpRow[] = $event[0]["Group"]["User"][$i]["name"];
-			// candidate
-			for ($j = 0; $j < $cntCandidates; $j++) {
-				$targetUserId = $event[0]["Group"]["User"][$i]["id"];
-				$targetCandidateId = $event[0]["Candidate"][$j]["id"];
-				if (isset(
-					$registrationDataArray[$targetUserId][$targetCandidateId])) {
-					$tmpRow[] = $registrationDataArray[$targetUserId][$targetCandidateId];
-				} else {
-					$tmpRow[] = 0;
-				}
-
-			}
-			$tmpRow[] = "";
-			$tableCells[] = $tmpRow;
-		}
-		$this->set('tableCells', $tableCells);
 	}
 
 	private function __cteateRegistrationDataArray($registrationData) {
@@ -157,6 +136,20 @@ class EventsController extends AppController {
 				$userinfo[0]["User"]["oauth_token"],
 				$userinfo[0]["User"]["oauth_token_secret"]);
 		return $groupList;
+	}
+
+	private function __getGroupMember($User, $groupId) {
+		$userinfo = $this->User->find('all', array(
+				'conditions' => array(
+						'user_uri' => $User["User"]["user_uri"]
+				),
+				'limit' => 1
+		));
+		$groupInfo = $this->CybozuLive->getGroupMember(
+				$userinfo[0]["User"]["oauth_token"],
+				$userinfo[0]["User"]["oauth_token_secret"],
+				$groupId);
+		return $groupInfo;
 	}
 /**
  * 新しいイベントを作成する
