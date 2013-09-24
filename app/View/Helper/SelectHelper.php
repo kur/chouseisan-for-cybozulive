@@ -18,7 +18,7 @@ class SelectHelper extends AppHelper {
 			$res = "◯";
 		} elseif ($value == 2) {
 			$res = "△";
-		} elseif ($value == -1) {
+		} elseif ($value == 3) {
 			$res = "×";
 		}
 		return $res;
