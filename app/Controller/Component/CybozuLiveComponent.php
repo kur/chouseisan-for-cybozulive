@@ -26,7 +26,6 @@ class CybozuLiveComponent extends Component {
  */
 	public function getGroupList($oauthToken, $oauthTokenSecret) {
 		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
-
 		$result = $oauth
 		->sendRequest('https://api.cybozulive.com/api/group/V2',
 				array(
@@ -41,6 +40,46 @@ class CybozuLiveComponent extends Component {
 		}
 		return $groupList;
 	}
+
+	public function getGroupMember($oauthToken, $oauthTokenSecret, $groupId) {
+		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
+		$groupId = explode(",", $groupId);
+
+		$result = $oauth->sendRequest('https://api.cybozulive.com/api/gwMemberList/V2?group=' . $groupId[1] .
+				"&start-index=0&max-results=100",
+				array(
+						"unconfirmed" => "true"
+				), 'GET');
+		$cybozu = $result->getBody();
+		$cybozulive = simplexml_load_string($cybozu);
+
+		$groupMember = array();
+		$groupMember["member"] = array();
+		$groupMember["self"] = "";
+		foreach ($cybozulive->entry as $member) {
+			$groupMember["member"][(string)$member->id] = (string)$member->title;
+			if (!isset($member->link)) {
+				$groupMember["self"] = (string)$member->id;
+			}
+		}
+		if (count($groupMember) == 100) {
+			$result = $oauth->sendRequest('https://api.cybozulive.com/api/gwMemberList/V2?group=' . $groupId[1] .
+					"&start-index=100&max-results=100",
+					array(
+							"unconfirmed" => "true"
+					), 'GET');
+			$cybozu = $result->getBody();
+			$cybozulive = simplexml_load_string($cybozu);
+			foreach ($cybozulive->entry as $member) {
+				$groupMember["member"][(string)$member->id] = (string)$member->title;
+				if (!isset($member->link)) {
+					$groupMember["self"] = (string)$member->id;
+				}
+			}
+		}
+		return $groupMember;
+	}
+
 /**
  * 認証の共通処理
  * @param string $oauthRequestToken
