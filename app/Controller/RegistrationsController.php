@@ -4,12 +4,18 @@
 class RegistrationsController extends AppController {
 	public $uses = array("Event","Group","User","Registration","Candidate");
 
+	public $components = array('Auth', 'CybozuLive');
+
+	public function beforeFilter() {
+		parent::beforeFilter();
+	}
+
 	public function index(){
 		
 	}
-	/**
-	 * 回答確認及び登録画面
-	 */
+/**
+ * 回答確認及び登録画面
+ */
 	public function view(){
 		// データ受信時の処理
 		if ($this->request->is('post')) {
@@ -37,8 +43,9 @@ class RegistrationsController extends AppController {
 				//'limit' => 1,
 				'recursive' => -1
 		));
-		$tableHeaders[] ="選択肢";
-		$tableHeaders[] =$user[0]["User"]["name"];
+		
+		$tableHeaders[] ="候補";
+		$tableHeaders[] ="回答";
 		$this->set('tableHeaders', $tableHeaders);
 
 		// テーブル本体を生成
@@ -50,14 +57,17 @@ class RegistrationsController extends AppController {
 				'fields' => array('Registration.candidate_id','Registration.value'),
 				'recursive' => 1
 		));
-// 		var_dump($registration);
-// 		var_dump($event[0]["Candidate"]);
-		
+
 		$tableData = array();
 		foreach ($event[0]["Candidate"] as $candidate){
 			$tmpCells = array();
 			$tmpCells[] = $candidate["name"];
-			$tmpCells[] = $registration[$candidate["id"]];
+			if (isset($registration[$candidate["id"]])) {
+				$tmpCells[] = $registration[$candidate["id"]];				
+			} else {
+				$tmpCells[] = "";
+			}
+
 			$tableData[$candidate["id"]] = $tmpCells;  
 		}		
 		$this->set('tableData', $tableData);

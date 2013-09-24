@@ -1,7 +1,6 @@
 <?php
 // 前処理
-var_dump($tableData);
-foreach ($tableData as $key => &$value){
+foreach ($tableData as $key => &$value) {
 	foreach ($value as $key2 => &$cell) {
 		if ($key2 == 0) {
 			continue;
