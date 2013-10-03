@@ -9,26 +9,14 @@ class UsersController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login');
-		$this->Auth->loginRedirect = array('controller' => 'users', 'action' => 'logined');
-		$this->Auth->logoutRedirect = array('controller' => '/', 'action' => 'index');
 		$this->Auth->allow('callback', 'login');
-
-		$this->Auth->fields = array(
-				'username' => 'user_uri',
-				'password' => 'password'
-		);
-
-		$this->Auth->userModel = 'User';
-
-		if ($this->Auth->User()) {
-			//$this->layout = "logined";
-		}
 	}
 
+/**
+ * リダイレクトさせる
+ */
 	public function index() {
-		$this->redirect(array('controller' => 'pages',
-			'action' => 'home'));
+		$this->redirect(array('controller' => 'pages', 'action' => 'home'));
 	}
 /**
  * ログイン
@@ -46,10 +34,12 @@ class UsersController extends AppController {
  * ログイン後の画面遷移
  */
 	public function logined() {
-		if (isset($_SESSION["requestUrl"])) {
-			$this->redirect($_SESSION["requestUrl"]);
+		if (isset($_SESSION["requestUrl"]) && $_SESSION["requestUrl"] != "") {
+			$redirectUrl = $_SESSION["requestUrl"];
+			$_SESSION["requestUrl"] = "";
+			$this->redirect($redirectUrl);
 		} else {
-			$this->redirect(array('controller' => 'users', 'action' => 'index'));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
 	}
 /**
@@ -63,40 +53,61 @@ class UsersController extends AppController {
  */
 	public function callback() {
 		$this->autoRender = false;
+
 		// Access Toeken取得
 		$accessToken = $this->CybozuLive->getAccessToken(
 				$_SESSION['oauth_request_token'],
 				$_SESSION['oauth_request_token_secret'],
 				$_REQUEST['oauth_verifier']);
+
 		// Sessionに保存
 		$_SESSION['oauth_access_token'] = $accessToken['oauth_access_token'];
 		$_SESSION['oauth_access_token_secret'] = $accessToken['oauth_access_token_secret'];
 
 		// ユーザ情報の取得
-		$userinfo = $this->CybozuLive->getUserinfo(
+		$userInfo = $this->CybozuLive->getUserInfo(
 				$_SESSION['oauth_access_token'],
 				$_SESSION['oauth_access_token_secret']
 		);
-		// ユーザ登録
-		$data = array(
-				"User" => array(
-						"user_uri" => (string)$userinfo->uri,
-						"screen_name" => (string)$userinfo->name,
-						"password" => $this->Auth->password((string)$userinfo->uri),
-						"oauth_token" => $_SESSION['oauth_access_token'],
-						"oauth_token_secret" => $_SESSION['oauth_access_token_secret'],
-						"flag" => 0,
-				)
-		);
-		$this->User->save($data);
-		// ログイン処理
-		$logindata['User']["user_uri"] = (string)$userinfo->uri;
-		$logindata['User']["password"] = $this->Auth->password((string)$userinfo->uri);
 
-		if ($this->Auth->login($logindata)) {
+		// 所属グループ取得
+		$groupList = array();
+		foreach ($userInfo->entry as $group) {
+			$groupList[(string)$group->id] = (string)$group->title;
+		}
+
+		$userInfo->author->password = $this->Auth->password((string)$userInfo->author->uri);
+		$hoge = $this->User->add($userInfo, $groupList);
+		var_dump($hoge);
+		
+		if ($this->Auth->login($hoge)) {
 			$this->redirect(array('action' => 'logined'));
 		} else {
 			echo "error";
 		}
+		
+// 		// ユーザ登録
+// 		$data = array(
+// 				"User" => array(
+// 						"uri" => (string)$userInfo->author->uri,
+// 						"screen_name" => (string)$userInfo->author->name,
+// 						"group_list" => json_encode($groupList),
+// 						"password" => $this->Auth->password((string)$userInfo->author->uri),
+// 						"oauth_token" => $_SESSION['oauth_access_token'],
+// 						"oauth_token_secret" => $_SESSION['oauth_access_token_secret'],
+// 						"flag" => 0,
+// 				)
+// 		);
+// 		$this->User->save($data);
+
+		// ログイン処理
+// 		$logindata['User']["user_uri"] = (string)$userInfo->author->uri;
+// 		$logindata['User']["password"] = $this->Auth->password((string)$userInfo->author->uri);
+
+// 		if ($this->Auth->login($logindata)) {
+// 			$this->redirect(array('action' => 'logined'));
+// 		} else {
+// 			echo "error";
+// 		}
 	}
 }

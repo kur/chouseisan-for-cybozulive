@@ -38,6 +38,12 @@ class PagesController extends AppController {
  */
 	public $uses = array();
 
+	public $components = array('Auth', 'CybozuLive', 'Session');
+
+	public function beforeFilter() {
+		parent::beforeFilter();
+		$this->Auth->allow('display');
+	}
 /**
  * Displays a view
  *
@@ -47,6 +53,7 @@ class PagesController extends AppController {
  *	or MissingViewException in debug mode.
  */
 	public function display() {
+		
 		$path = func_get_args();
 
 		$count = count($path);

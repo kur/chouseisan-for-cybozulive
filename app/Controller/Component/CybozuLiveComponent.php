@@ -6,7 +6,7 @@ class CybozuLiveComponent extends Component {
  * @param unknown $oauthToken
  * @param unknown $oauthTokenSecret
  */
-	public function getUserinfo($oauthToken, $oauthTokenSecret) {
+	public function getUserinsfo($oauthToken, $oauthTokenSecret) {
 		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
 
 		$result = $oauth
@@ -19,7 +19,22 @@ class CybozuLiveComponent extends Component {
 		return $cybozulive->author;
 	}
 /**
- * グループのリストを取得
+ * ユーザ情報を取得
+ * @param unknown $oauthToken
+ * @param unknown $oauthTokenSecret
+ */
+	public function getUserInfo($oauthToken, $oauthTokenSecret) {
+		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
+		$result = $oauth
+		->sendRequest('https://api.cybozulive.com/api/group/V2',
+				array(
+						"unconfirmed" => "true"
+				), 'GET');
+		$userInfo = $result->getBody();
+		return simplexml_load_string($userInfo);
+	}
+/**
+ * ユーザの所属するグループのリストを取得
  * @param unknown $oauthToken
  * @param unknown $oauthTokenSecret
  * @return multitype:string
@@ -150,6 +165,8 @@ class CybozuLiveComponent extends Component {
 			$authorizationUrl = $oauth->getAuthorizeURL('https://api.cybozulive.com/oauth/authorize');
 		} catch (Exception $e) {
 			$content = $e->getMessage();
+			var_dump($content);
+			
 		}
 		return $authorizationUrl;
 	}

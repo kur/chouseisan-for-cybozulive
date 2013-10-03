@@ -1,49 +1,43 @@
-<h1><?php echo $eventName; ?></h1>
-<div><?php echo $eventDescription; ?></div>
-
-<table>
-<?php
-echo $this->Html->tableHeaders($tableHeaders);
-$tableCells = array();
-foreach ($tableData as $key => &$user) {
-	foreach ($user as $key2 => &$cell) {
-		if ($key2 == 0) {
-			continue;
-		}
-		$cell = $this->Select->replaceSelectAnswer($cell);
-	}
-	// 自分自身の回答だけを編集できる
-	if ($key == $userId) {
-		$user[] = $this->Html->link(
-					"回答を編集する",
-					array('controller' => 'registrations', 'action' => 'view',
-							"userId" => $key,
-							"eventId" => $eventId)
-			);
-	} else {
-		$user[] = "";
-	}
-	$tableCells[] = $user;
-}
-echo $this->Html->tableCells($tableCells);
-
-?>
-</table>
-
-
-<br>
 <?php 
-if ( $eventOwnerId == $User["User"]["user_uri"]) {
-	echo $this->Html->link(
-		"候補を編集する",
-		array('controller' => 'candidates', 'action' => 'view', "eventId" => $eventId));
+echo $this->Menu->getMenu(-1, $isLogin);
+?>
+<h3><?php echo $event["Event"]["name"] . " - " . $group["Group"]["name"]; ?></h3>
+<div><?php echo $event["Event"]["description"]; ?></div>
+
+<?php 
+if (isset($tableHeaders) && isset($tableData)) {
+	?>
+	<table class="table">
+	<thead>
+	<?php
+	echo $this->Html->tableHeaders($tableHeaders);
+	?>
+	</thead>
+	<tbody>
+	<?php
+	echo $this->Html->tableCells(
+	$this->Table->getTableCellsData($tableData, $event["Event"]['id'], $user["User"]["uri"])
+	);
+	?>
+	</tbody>
+	</table>
+	<?php 
 } else {
-	echo "候補を編集する（イベント作成者のみが編集可能です）";
+	?>
+	<br>
+	<div class="alert alert-info">
+	候補が登録されていません。候補を登録してください。
+	</div>
+	<?php
 }
-?>
+	?>
 <br>
-<?php 
-echo $this->Html->link(
-				"back",
-				array('controller' => 'events', 'action' => 'index')
-		);
+<?php
+if ( $event["Event"]['owner_id'] == $user["User"]["uri"]) {
+	echo $this->Html->link(
+		"イベントの情報を編集する",
+		array('controller' => 'events', 'action' => 'edit', "eventId" => $event["Event"]['id']),
+		array('class' => 'btn'));
+} else {
+	echo "イベントの情報を編集する（イベント作成者のみが編集可能です）";
+}

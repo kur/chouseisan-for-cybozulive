@@ -32,4 +32,27 @@ App::uses('Controller', 'Controller');
  * @link		http://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
 class AppController extends Controller {
+
+	public $components = array('Auth', 'Session');
+
+	public function beforeFilter() {
+		parent::beforeFilter();
+
+		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login');
+		$this->Auth->loginRedirect = array('controller' => 'users', 'action' => 'logined');
+		$this->Auth->logoutRedirect = array('controller' => '/', 'action' => 'index');
+		$this->Auth->fields = array(
+				//'username' => 'user_uri',
+				'username' => 'uri',
+				'password' => 'password'
+		);
+		$this->Auth->userModel = 'User';
+
+		if ($this->Auth->User()) {
+			$isLogin = true;
+		} else {
+			$isLogin = false;
+		}
+		$this->set('isLogin', $isLogin);
+	}
 }

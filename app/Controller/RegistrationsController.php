@@ -39,7 +39,7 @@ class RegistrationsController extends AppController {
 		
 		// テーブルヘッダーを生成
 		$user = $this->User->find('all', array(
-				'conditions' => array('User.id' => $userId),
+				'conditions' => array('User.uri' => $userId),
 				//'limit' => 1,
 				'recursive' => -1
 		));
@@ -71,29 +71,6 @@ class RegistrationsController extends AppController {
 			$tableData[$candidate["id"]] = $tmpCells;  
 		}		
 		$this->set('tableData', $tableData);
-		
-		
-		
-		//$cntCandidate = count($event[0]["Candidate"]);
-// 		$tableIndex = array();
-// 		foreach ($event[0]["Candidate"] as $candidate){
-// 			$tmpRow = array();
-// 			$tableIndex[] = $candidate["id"];
-// 			$tmpRow[] = $candidate["name"];
-// 			$tmpRow[] = $this->getRegistrationData($registration, $candidate["id"]);
-// 			$tableCells[] = $tmpRow;
-// 		}
-// 		for($i = 0;$i < $cntCandidate; $i++ ){
-// 			$tmpRow = array();
-// 			$tableIndex[] = $event[0]["Candidate"][$i]["id"];
-// 			$tmpRow[] = $event[0]["Candidate"][$i]["name"];
-// 			$tmpRow[] = $this->getRegistrationData($registration, $event[0]["Candidate"][$i]["id"]);			
-// 			$tableCells[] = $tmpRow;
-// 		}
-//		$this->set('tableIndex', $tableIndex);
-//		$this->set('tableCells', $tableCells);
-		
-		return;
 	}
 	private function getRegistrationData($registration, $candidateId){
 		$cntRegistration = count($registration);
