@@ -22,11 +22,14 @@ class UsersController extends AppController {
  * ログイン
  */
 	public function login($confirmed = false) {
+		// リダイレクト後のURLの指定があればSESSIONに保存
 		if (isset($_GET["requesturl"])) {
 			$_SESSION["requestUrl"] = $_GET["requesturl"];
 		}
 		if ($confirmed) {
+			// サイボウズLiveから認証用URLを取得
 			$authorizationUrl = $this->CybozuLive->getAuthorizationUrl();
+			// 認証用URLにリダイレクト
 			$this->redirect($authorizationUrl);
 		}
 	}
@@ -34,6 +37,7 @@ class UsersController extends AppController {
  * ログイン後の画面遷移
  */
 	public function logined() {
+		// セッションにログイン後遷移URLが指定されていた場合の処理
 		if (isset($_SESSION["requestUrl"]) && $_SESSION["requestUrl"] != "") {
 			$redirectUrl = $_SESSION["requestUrl"];
 			$_SESSION["requestUrl"] = "";
@@ -54,13 +58,13 @@ class UsersController extends AppController {
 	public function callback() {
 		$this->autoRender = false;
 
-		// Access Toeken取得
+		// サイボウズLiveからAccess Toeken取得
 		$accessToken = $this->CybozuLive->getAccessToken(
 				$_SESSION['oauth_request_token'],
 				$_SESSION['oauth_request_token_secret'],
 				$_REQUEST['oauth_verifier']);
 
-		// Sessionに保存
+		// 取得したAccess TokenをSessionに保存
 		$_SESSION['oauth_access_token'] = $accessToken['oauth_access_token'];
 		$_SESSION['oauth_access_token_secret'] = $accessToken['oauth_access_token_secret'];
 
@@ -76,38 +80,17 @@ class UsersController extends AppController {
 			$groupList[(string)$group->id] = (string)$group->title;
 		}
 
+		// CakePHP ACLログイン用のパスワードを生成
 		$userInfo->author->password = $this->Auth->password((string)$userInfo->author->uri);
-		$hoge = $this->User->add($userInfo, $groupList);
-		var_dump($hoge);
-		
-		if ($this->Auth->login($hoge)) {
+
+		// ユーザとして登録
+		$user = $this->User->add($userInfo, $groupList);
+
+		// 登録したアカウントでログイン
+		if ($this->Auth->login($user)) {
 			$this->redirect(array('action' => 'logined'));
 		} else {
-			echo "error";
+			$this->redirect(array('action' => 'index'));
 		}
-		
-// 		// ユーザ登録
-// 		$data = array(
-// 				"User" => array(
-// 						"uri" => (string)$userInfo->author->uri,
-// 						"screen_name" => (string)$userInfo->author->name,
-// 						"group_list" => json_encode($groupList),
-// 						"password" => $this->Auth->password((string)$userInfo->author->uri),
-// 						"oauth_token" => $_SESSION['oauth_access_token'],
-// 						"oauth_token_secret" => $_SESSION['oauth_access_token_secret'],
-// 						"flag" => 0,
-// 				)
-// 		);
-// 		$this->User->save($data);
-
-		// ログイン処理
-// 		$logindata['User']["user_uri"] = (string)$userInfo->author->uri;
-// 		$logindata['User']["password"] = $this->Auth->password((string)$userInfo->author->uri);
-
-// 		if ($this->Auth->login($logindata)) {
-// 			$this->redirect(array('action' => 'logined'));
-// 		} else {
-// 			echo "error";
-// 		}
 	}
 }
