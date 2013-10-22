@@ -3,93 +3,101 @@
 class EventsController extends AppController {
 
 	public $uses = array(
-		"Event", "Group", "User", "EventUser",
+		"Event",
+		"Group",
+		"User",
+		"EventProfile",
+		"Profile"
 	);
 
-	public $components = array('Auth', 'Session', 'CybozuLive');
+	public $components = array(
+		'Auth',
+		'Session',
+		'CybozuLive'
+	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-		//$this->Auth->allow('index', 'view');
-		$requestUrl = "http://" . $_SERVER["HTTP_HOST"] . $_SERVER["REQUEST_URI"];
-		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login',
-			'?' => array('requesturl' => $requestUrl));
-	}
-
-/**
- * 自分が所属しているグループのイベントリストを表示する
- */
+	/**
+	 * 自分が所属しているグループのイベントリストを表示する
+	 */
 	public function index() {
 		$user = $this->Auth->User();
-
 		// 自分の所属するグループ一覧を取得する
- 		$groupList = $this->User->getGroupList($user["User"]["uri"]);
- 		$this->set('groupList', $groupList);
+		$groupList = $this->User->getGroupList($user["User"]["uri"]);
+		$this->set('groupList', $groupList);
 
 		// グループIDに一致するイベント一覧を取得する
- 		$eventList = $this->Event->getList($groupList);
- 		$this->set('eventList', $eventList);
+		$eventList = $this->Event->getList($groupList);
+		$this->set('eventList', $eventList);
+
+		return true;
 	}
 
-/**
- * イベントの詳細を表示する
- */
-
+	/**
+	 * イベントの詳細を表示する
+	 */
 	public function view() {
 		$user = $this->Auth->User();
+		$userInfo = $this->User->getInfo($user["User"]["uri"]);
 		$this->set('user', $user);
+		$this->set('userInfo', $userInfo);
 		$eventId = $this->params['named']['eventId'];
-		//		$this->set('eventId', $eventId);
-	
-		// イベントに関する情報を取得
 		$event = $this->Event->getInfo($eventId);
+
+		$groupList = $this->User->getGroupList($user["User"]["uri"]);
+
+		// 権限を確認する
+		// イベントが存在しない場合　または自分が所属しないグループのイベントの場合は、イベント一覧へ
+		if (!isset($event) || empty($event) || !isset($groupList[$event['Event']['group_id']])) {
+			$this->redirect(array(
+				'controller' => 'events',
+				'action' => 'index'
+			));
+			return false;
+		}
 		$this->set('event', $event);
-	
 		// グループのメンバー一覧を取得
 		$group = $this->Group->getInfo($event["Event"]["group_id"]);
-		$groupMember = json_decode($group["Group"]["member_list"],true);
 		$this->set('group', $group);
-	
-		//グループにおけるユーザのIDを取得する
-		$this->set('userIdInGroup', $groupMember["self"]);
-	
+
 		// イベントの候補を取得
-		$candidateList = json_decode($event["Event"]["candidate_list"], true);
+		$registrations = $this->EventProfile->getInfo($eventId);
+		$this->set('registrations', $registrations);
+		return true;
 
 		// イベント候補がある場合
-		$tableHeaders[] = "";
-		if (isset($candidateList["data"])) {
-			// テーブルヘッダーを生成
-			foreach ($candidateList["data"] as $key => $name) {
-				$tableHeaders[] = $name;
-			}
-			$tableHeaders[] = "";
-			$this->set('tableHeaders', $tableHeaders);
-	
-			// 各自の回答を取得する
-			$registrations = $this->EventUser->getList($eventId);
-			$registrationData = array();
-			foreach ($registrations as $key => $registration) {
-				$registrationData[$registration["EventUser"]["user_id"]] =
-				json_decode($registration["EventUser"]["value"], true);
-			}
-				
-			// 回答を整形する
-			$tableData = array();
-			foreach ($groupMember["member"] as $key => $name) {
-				$tmpRow = array();
-				$tmpRow[] = $name;
-				foreach ($candidateList["data"] as $candidateId => $candidateName) {
-					if (isset($registrationData[$key][$candidateId])) {
-						$tmpRow[] = $registrationData[$key][$candidateId];
-					} else {
-						$tmpRow[] = 0;
-					}
-				}
-				$tableData[$key] = $tmpRow;
-			}
-			$this->set('tableData', $tableData);
-		}
+		// 		$tableHeaders[] = "";
+		// 		if (isset($candidateList["data"])) {
+		// 			// テーブルヘッダーを生成
+		// 			foreach ($candidateList["data"] as $key => $name) {
+		// 				$tableHeaders[] = $name;
+		// 			}
+		// 			$tableHeaders[] = "";
+		// 			$this->set('tableHeaders', $tableHeaders);
+
+		// 			// 各自の回答を取得する
+		// 			$registrations = $this->EventUser->getList($eventId);
+		// 			$registrationData = array();
+		// 			foreach ($registrations as $key => $registration) {
+		// 				$registrationData[$registration["EventUser"]["user_id"]] = json_decode(
+		// 					$registration["EventUser"]["value"], true);
+		// 			}
+
+		// 			// 回答を整形する
+		// 			$tableData = array();
+		// 			foreach ($groupMember["member"] as $key => $name) {
+		// 				$tmpRow = array();
+		// 				$tmpRow[] = $name;
+		// 				foreach ($candidateList["data"] as $candidateId => $candidateName) {
+		// 					if (isset($registrationData[$key][$candidateId])) {
+		// 						$tmpRow[] = $registrationData[$key][$candidateId];
+		// 					} else {
+		// 						$tmpRow[] = 0;
+		// 					}
+		// 				}
+		// 				$tableData[$key] = $tmpRow;
+		// 			}
+		// 			$this->set('tableData', $tableData);
+		// 		}
 	}
 
 	private function __cteateRegistrationDataArray($registrationData) {
@@ -105,190 +113,319 @@ class EventsController extends AppController {
 		return $data;
 	}
 
-// 	private function __getGroupMember($User, $groupId) {
-// 		$userinfo = $this->User->find('all', array(
-// 				'conditions' => array(
-// 						'User.uri' => $User["User"]["uri"]
-// 				),
-// 				'limit' => 1
-// 		));
-// 		$groupInfo = $this->CybozuLive->getGroupMember(
-// 				$userinfo[0]["User"]["oauth_token"],
-// 				$userinfo[0]["User"]["oauth_token_secret"],
-// 				$groupId);
-// 		return $groupInfo;
-// 	}
-/**
- * 新しいイベントを作成する
- */
+	private function __getGroupMember($User, $groupId) {
+		$userInfo = $this->User->getInfo($User["User"]["uri"]);
+		$groupInfo = $this->CybozuLive->getGroupMember($userInfo["User"]["oauth_token"],
+			$userInfo["User"]["oauth_token_secret"], $groupId);
+		return $groupInfo;
+	}
+
+	/**
+	 * 新しいイベントを作成する
+	 */
 	public function create() {
+		// ユーザ情報を取得
 		$user = $this->Auth->User();
-		
+		$userInfo = $this->User->getInfo($user["User"]["uri"]);
+		// ユーザの所属するグループリストを取得
 		$groupList = $this->User->getGroupList($user["User"]["uri"]);
-		$this->set('groupList', $groupList);
-		if ($this->request->is('post') &&
-		// ユーザが該当グループに参加しているかを確認
-				isset($groupList[$this->request->data["Event"]["group_id"]])) {
-			
+		if ($this->request->is('post')) {
+
+			// ユーザが該当グループに参加しているかを確認
+			if (isset($groupList[$this->request->data["Event"]["group_id"]]) == false) {
+				return false;
+			}
 			$isSuccess = true;
+
 			// イベントを追加
-			if (!$this->Event->Add($this->request->data, $user["User"]["uri"])) {
+			if (!$this->Event->Add($this->request->data, $user["User"]["id"])) {
 				$isSuccess = false;
 			}
+
+			// group Profileを取得
+			$groupMembers = $this->CybozuLive->getGroupMember($userInfo["User"]["oauth_token"],
+				$userInfo["User"]["oauth_token_secret"],
+				$this->Group->getUri($this->request->data["Event"]["group_id"]));
+			debug($groupMembers);
+			$groupMemberList = array();
+			foreach ($groupMembers['member'] as $uri => $name) {
+				// 同じURLがあるかを確認する
+				$tmpMember = $this->Profile->find('first',
+					array(
+						'conditions' => array(
+							'Profile.uri' => $uri
+						)
+					));
+
+				if (empty($tmpMember)) {
+					$this->Profile->create();
+					$profileData = array(
+						'Profile' => array(
+							'uri' => $uri,
+							'screen_name' => $name
+						)
+					);
+					$tmpMember = $this->Profile->save($profileData);
+				}
+				$groupMemberList[] = $tmpMember['Profile']['id'];
+			}
+			debug($groupMemberList);
 			// グループメンバーを更新
-			$userInfo = $this->User->getInfo($user["User"]["uri"]);
-			if(!$this->Group->update($this->request->data["Event"]["group_id"],
-					$groupList[$this->request->data["Event"]["group_id"]],
-					$this->__getGroupMember($userInfo, $this->request->data["Event"]["group_id"])
-				)) {
-				$isSuccess = false;
-			}
+			$this->Group->update($this->request->data["Event"]["group_id"],
+					$groupList[$this->request->data["Event"]["group_id"]], $groupMemberList);
+
 			if ($isSuccess) {
-				$this->Session->setFlash('イベントが作成されました', 'default', array('class' => 'alert alert-success'));
+				$this->Session->setFlash('イベントが作成されました', 'default',
+					array(
+						'class' => 'alert alert-success'
+					));
 			}
 			$this->redirect(array(
-					'action' => 'index'
+				'action' => 'index'
 			));
+			return $isSuccess;
 		}
+		$this->set('groupList', $groupList);
+
 	}
-	private function __checkPermission($eventId){
+	private function __checkPermission($eventId) {
+
+		return $result;
+	}
+
+	public function removeCandidate() {
+		$this->autoRender = false;
+		// 自分のイベントかどうかを判断する
 		$user = $this->Auth->User();
 		$userInfo = $this->User->getInfo($user["User"]["uri"]);
 
+		// 引数を確認し、イベント情報を取得する
+		$eventId = -1;
+		if (isset($this->params['named']['eventId'])) {
+			$eventId = $this->params['named']['eventId'];
+		}
 		$event = $this->Event->getInfo($eventId);
+
+		// イベントが存在しない場合　または オーナーが自分ではない場合は、イベント一覧へ
+		if (!isset($event) || !$event || $userInfo["User"]["id"] != $event["Event"]["owner_id"]) {
+			$this->redirect(array(
+				'controller' => 'events',
+				'action' => 'index'
+			));
+			return false;
+		}
 		$result = false;
-		if ($userInfo["User"]["uri"] == $event["Event"]["owner_id"]) {
-				$result = true;
-		}
-		return $result;
-	}
-	
-	public function removeCandidate() {
-		$this->autoRender = false;
-		// 認証する
-		$eventId = $this->params['named']['eventId'];
-		if($this->__checkPermission($eventId) == false){
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
-		}
 		$candidateId = $this->params['named']['candidateId'];
-		if($this->Event->removeCandidate($eventId, $candidateId)) {
-			$this->Session->setFlash('選択肢削除されました', 'default', array('class' => 'alert alert-success'));			
+		if ($this->Event->removeCandidate($eventId, $candidateId)) {
+			$this->Session->setFlash('選択肢削除されました', 'default', array(
+				'class' => 'alert alert-success'
+			));
+			$result = true;
 		} else {
 			$this->Session->setFlash('選択肢を削除できませんでした');
 		}
-		$this->redirect(array('controller' => 'events',
-				'action' => 'edit',
-				'eventId' => $eventId));
+
+		$this->redirect(array(
+			'controller' => 'events',
+			'action' => 'edit',
+			'eventId' => $eventId
+		));
+		return $result;
 	}
-	private function __editDescription(){
+	private function __editDescription() {
 		$user = $this->Auth->User();
-		$eventId = $this->request->data["Event"]["id"];
+		$eventId = -1;
+		if (isset($this->request->data["Event"]["id"])) {
+			$eventId = $this->request->data["Event"]["id"];
+		}
 		$event = $this->Event->getInfo($eventId);
 		$userInfo = $this->User->getInfo($user["User"]["uri"]);
-		if($userInfo["User"]["uri"] != $event["Event"]["owner_id"]){
-			$this->redirect(array('controller' => 'events',
-					'action' => 'index'));
+		$result = false;
+		if (!isset($event) || !$event || $userInfo["User"]["uri"] != $event["Event"]["owner_id"]) {
+			$this->redirect(array(
+				'controller' => 'events',
+				'action' => 'index'
+			));
+			return $result;
 		}
-		if ($this->Event->save($this->request->data)) {
-			$this->Session->setFlash('説明が編集されました', 'default', array('class' => 'alert alert-success'));
-			$this->redirect(array('controller' => 'events',
+
+		$result = $this->Event->editDescription($eventId, $this->request->data["Event"]["description"]);
+
+		if ($result) {
+			$this->Session->setFlash('説明が編集されました', 'default', array(
+				'class' => 'alert alert-success'
+			));
+			$this->redirect(
+				array(
+					'controller' => 'events',
 					'action' => 'edit',
-					'eventId' => $this->request->data["Event"]["id"]));
+					'eventId' => $this->request->data["Event"]["id"]
+				));
+			$result = true;
 		} else {
 			$this->Session->setFlash('選択肢を追加できませんでした');
 		}
+		return $result;
 	}
-	private function __editCandidate(){
-		$user = $this->Auth->User();
-		$eventId = $this->request->data["event_id"];
-		$event = $this->Event->getInfo($eventId);
-		$userInfo = $this->User->getInfo($user["User"]["uri"]);
-		if($userInfo["User"]["uri"] != $event["Event"]["owner_id"]){
-			$this->redirect(array('controller' => 'events',
-					'action' => 'index'));
-		}
-		$event = $this->Event->getInfo($this->request->data["event_id"]);
-		$candidateList = json_decode($event["Event"]["candidate_list"], true);
-		
-		if (!isset($candidateList["max"])) {
-			$candidateList["max"] = 0;
-		}
-		$candidateList["data"][$candidateList["max"]] = $this->request->data["name"];
-		$candidateList["max"]++;
-		$event["Event"]["candidate_list"] = json_encode($candidateList, JSON_FORCE_OBJECT);
-		
-		if ($this->Event->save($event)) {
-			$this->Session->setFlash('選択肢が追加されました', 'default', array('class' => 'alert alert-success'));
-			$this->redirect(array('controller' => 'events',
+	private function __editCandidate() {
+		// 		$user = $this->Auth->User();
+
+		// 		$eventId = -1;
+		// 		if (isset($this->request->data["eventId"])) {
+		// 			$eventId = $this->request->data["eventId"];
+		// 		}
+		// 		$event = $this->Event->getInfo($eventId);
+		// 		$userInfo = $this->User->getInfo($user["User"]["uri"]);
+		// 		if (!isset($event) || !$event || $userInfo["User"]["uri"] != $event["Event"]["owner_id"]) {
+		// 			$this->redirect(array(
+		// 				'controller' => 'events',
+		// 				'action' => 'index'
+		// 			));
+		// 			return false;
+		// 		}
+		// 		$event = $this->Event->getInfo($this->request->data["eventId"]);
+
+		// 追加
+		$result = $this->Event->addCandidate($eventId, $this->request->data["name"]);
+
+		if ($result) {
+			$this->Session->setFlash('選択肢が追加されました', 'default', array(
+				'class' => 'alert alert-success'
+			));
+			$this->redirect(
+				array(
+					'controller' => 'events',
 					'action' => 'edit',
-					'eventId' => $this->request->data["event_id"]));
+					'eventId' => $this->request->data["eventId"]
+				));
 		} else {
 			$this->Session->setFlash('選択肢を追加できませんでした');
 		}
+		return $result;
 	}
-	private function __editview(){
+	/**
+	 * GETアクセスが有った場合の処理
+	 * @return void|boolean
+	 */
+	private function __editview() {
 		$user = $this->Auth->User();
-		// 権限確認
-		$eventId = $this->params['named']['eventId'];
-		$event = $this->Event->getInfo($eventId);
+
+		// 引数を確認し、イベント情報を取得する
+		if (isset($this->params['named']['eventId'])) {
+			$eventId = $this->params['named']['eventId'];
+			$event = $this->Event->getInfo($eventId);
+			$this->set('event', $event);
+		}
+
+		// 権限を確認する
 		$userInfo = $this->User->getInfo($user["User"]["uri"]);
-		if($userInfo["User"]["uri"] != $event["Event"]["owner_id"]){
-			$this->redirect(array('controller' => 'events',
-					'action' => 'index'));
+
+		// イベントが存在しない場合　または オーナーが自分ではない場合は、イベント一覧へ
+		if (!isset($event) || !$event || $userInfo["User"]["uri"] != $event["Event"]["owner_id"]) {
+			$this->redirect(array(
+				'controller' => 'events',
+				'action' => 'index'
+			));
+			return false;
 		}
-		
-		// 引数がなかった場合、イベント一覧へ
-		if(!isset($this->params['named']['eventId'])){
-			$this->redirect(array('controller' => 'events',
-					'action' => 'index'));
-		}
-		$eventId = $this->params['named']['eventId'];
-		// イベントに関する情報を取得
-		$event = $this->Event->getInfo($eventId);
-		$this->set('event', $event);
-			
-		
 		// グループに関する情報を取得
 		$group = $this->Group->getInfo($event["Event"]["group_id"]);
 		$this->set('group', $group["Group"]);
-		
-		$tableHeaders[] = "候補日";
-		$tableHeaders[] = "操作";
-		$this->set('tableHeaders', $tableHeaders);
-		
-		$candidateList = json_decode($event["Event"]["candidate_list"], true);
-		$tableData = array();
-			
-		if (isset($candidateList["data"])) {
-			foreach ($candidateList["data"] as $key => $name) {
-				$tmpRow = array();
-				$tmpRow[] = $name;
-				$tmpRow[] = "del";
-				$tableData[$key] = $tmpRow;
-			}
-		}
-		$this->set('tableData', $tableData);
-		
-		
+
+		// 		$tableHeaders[] = "候補日";
+		// 		$tableHeaders[] = "操作";
+		// 		$this->set('tableHeaders', $tableHeaders);
+
+		//		$candidateList = json_decode($event["Event"]["candidate_list"], true);
+		// 		$tableData = array();
+
+		// 		if (isset($candidateList["data"])) {
+		// 			foreach ($candidateList["data"] as $key => $name) {
+		// 				$tmpRow = array();
+		// 				$tmpRow[] = $name;
+		// 				$tmpRow[] = "del";
+		// 				$tableData[$key] = $tmpRow;
+		// 			}
+		// 		}
+		//		$this->set('candidateList', $candidateList);
+
 	}
-	
-/**
- * イベントを編集する
- */
+
+	/**
+	 * イベントを編集する
+	 */
 	public function edit() {
-		// 振り分け
-		if(isset($this->params['named']['eventId'])) {
-			$this->__editview();
-		} elseif ($this->request->is('post')) {
-			if($this->request->data["type"] == "description") {
-				$this->__editDescription();
-			} elseif($this->request->data["type"] == "candidate" && $this->request->data["name"] != "") {
-				$this->__editCandidate();
-			}
+		// 自分のイベントかどうかを判断する
+		$user = $this->Auth->User();
+		$userInfo = $this->User->getInfo($user["User"]["uri"]);
+
+		// 引数を確認し、イベント情報を取得する
+		$eventId = -1;
+		if (isset($this->params['named']['eventId'])) {
+			$eventId = $this->params['named']['eventId'];
+		} elseif (isset($this->request->data["eventId"])) {
+			$eventId = $this->request->data["eventId"];
+		} elseif (isset($this->request->data["Event"]["id"])) {
+			$eventId = $this->request->data["Event"]["id"];
 		}
-		return;
+		$event = $this->Event->getInfo($eventId);
+		$this->set('event', $event);
+
+		// イベントが存在しない場合　または オーナーが自分ではない場合は、イベント一覧へ
+		if (!isset($event) || empty($event) || $userInfo["User"]["id"] != $event["Event"]["owner_id"]) {
+			$this->redirect(array(
+				'controller' => 'events',
+				'action' => 'index'
+			));
+			return false;
+		}
+		// 自分のイベントであるなら
+		$result = false;
+		if ($this->request->is('post')) {
+			if ($this->request->data["type"] == "description") {
+				$result = $this->Event->editDescription($eventId, $this->request->data["Event"]["description"]);
+
+				if ($result) {
+					$this->Session->setFlash('説明が編集されました', 'default',
+						array(
+							'class' => 'alert alert-success'
+						));
+					$result = true;
+				} else {
+					$this->Session->setFlash('選択肢を追加できませんでした');
+				}
+				// 候補の追加
+			} elseif ($this->request->data["type"] == "candidate" && $this->request->data["name"] != "") {
+				$result = $this->Event->addCandidate($eventId, $this->request->data["name"]);
+				if ($result) {
+					$this->Session->setFlash('選択肢が追加されました', 'default',
+						array(
+							'class' => 'alert alert-success'
+						));
+
+				} else {
+					$this->Session->setFlash('選択肢を追加できませんでした');
+				}
+			}
+			//			if ($result) {
+			$this->redirect(
+				array(
+					'controller' => 'events',
+					'action' => 'edit',
+					'eventId' => $eventId
+				));
+			//			}
+
+		} else {
+			// グループに関する情報を取得
+			$group = $this->Group->getInfo($event["Event"]["group_id"]);
+			$this->set('group', $group["Group"]);
+
+		}
+
+		return $result;
 		// 権限確認
-				
+
 		// 		$eventId = null;
 		// 		if(isset($this->request->data["Event"]["id"])) {
 		// 			$eventId = $this->request->data["Event"]["id"];
@@ -314,105 +451,72 @@ class EventsController extends AppController {
 		// 		} else {
 		// 		}
 	}
-/**
- * 回答確認及び登録画面
- */
+	/**
+	 * 回答確認及び登録画面
+	 */
 	public function register() {
+		$user = $this->Auth->User();
+		$userInfo = $this->User->getInfo($user["User"]["uri"]);
+		$this->set('user', $user);
+		$this->set('userInfo', $userInfo);
+
 		// データ受信時の処理
 		if ($this->request->is('post')) {
 			$this->autoRender = false;
 			$eventId = $this->params["data"]["event_id"];
-			$userId = $this->params["data"]["user_id"];
+			$profileId = $this->params["data"]["profile_id"];
+		
 
+			
 			// 現在の登録データを取得
-			$registrations = $this->EventUser->find('all', array(
-					'conditions' => array(
-							'EventUser.event_id' => $eventId,
-							'EventUser.user_id' => $userId,
-					),
-					'recursive' => -1,
-			));
+			$registrations = $this->EventProfile->getInfo($eventId, $profileId);
 			if (count($registrations) == 0) {
-				$registrations[0]["EventUser"]["event_id"] = $eventId;
-				$registrations[0]["EventUser"]["user_id"] = $userId;
+				$registrations[0]["EventProfile"]["event_id"] = $eventId;
+				$registrations[0]["EventProfile"]["profile_id"] = $profileId;
 				$registrationData = array();
 			} else {
-				$registrationData = json_decode($registrations[0]["EventUser"]["value"], true);
+				$registrationData = json_decode($registrations[0]["EventProfile"]["value"], true);
 			}
 			foreach ($this->params["data"]["value"] as $key => $value) {
 				// 存在しない場合 or 異なる場合
-				if (!isset($registrationData[$key])
-					|| $registrationData[$key] != $value) {
+				if (!isset($registrationData[$key]) || $registrationData[$key] != $value) {
 					$registrationData[$key] = $value;
 				}
 			}
 
-			$registrations[0]["EventUser"]["value"] = json_encode($registrationData, JSON_FORCE_OBJECT);
-			$this->EventUser->save($registrations[0]);
-			$this->Session->setFlash('選択肢が追加されました', 'default', array('class' => 'alert alert-success'));
-			$this->redirect(array('controller' => 'events', 'action' => 'register',
-					"userId" => $userId,
-					"eventId" => $eventId));
+			$registrations[0]["EventProfile"]["value"] = json_encode($registrationData, JSON_FORCE_OBJECT);
+
+			$this->EventProfile->save($registrations[0]);
+			$this->Session->setFlash('回答が更新されました', 'default', array(
+				'class' => 'alert alert-success'
+			));
+			$this->redirect(
+				array(
+					'controller' => 'events',
+					'action' => 'register',
+					"profileId" => $profileId,
+					"eventId" => $eventId
+				));
 		} else {
-			$userId = $this->params['named']['userId'];
+
+			$profileId = $this->params['named']['profileId'];
 			$eventId = $this->params['named']['eventId'];
-			$this->set('userId', $userId);
+			$this->set('profileId', $profileId);
 			$this->set('eventId', $eventId);
 
 			// event_idを取得
-			$event = $this->Event->find('all', array(
-					'conditions' => array('Event.id' => $eventId),
-					'recursive' => 1
-			));
+			$event = $this->Event->getInfo($eventId);
+			//debug($event);
 			$this->set('event', $event);
-			$this->set('eventName', $event[0]["Event"]["name"]);
-			$this->set('eventOwnerId', $event[0]["Event"]["owner_id"]);
-			$this->set('eventDescription', $event[0]["Event"]["description"]);
 
-			$group = $this->Group
-			->find('all',
-					array(
-							'conditions' => array(
-									'Group.id' => $event[0]["Event"]["group_id"]
-							), 'limit' => 1, 'recursive' => 1
-					));
-			$groupMember = (array)json_decode($group[0]["Group"]["member_list"]);
-			$this->set('groupName', $group[0]["Group"]["name"]);
+			$group = $this->Group->getInfo($event["Event"]["group_id"]);
+			//debug($group);
+			$this->set('group', $group);
 			// テーブルヘッダーを生成
-			$user = $this->User->find('all', array(
-					'conditions' => array('User.uri' => $userId),
-					'recursive' => -1
-			));
-			$tableHeaders[] = "候補";
-			$tableHeaders[] = "回答";
-			$this->set('tableHeaders', $tableHeaders);
-			// テーブル本体を生成
-			$registration = $this->EventUser->find('all', array(
-					'conditions' => array(
-							'EventUser.event_id' => $eventId,
-							'EventUser.user_id' => $userId,
-					),
-					'recursive' => -1
-			));
+			$registrations = $this->EventProfile->getInfo($eventId);
+			$this->set('registrations', $registrations);
+//			debug($registrations);
 
-			$candidateList = json_decode($event[0]["Event"]["candidate_list"], true);
-			$registrationData = array();
-			if (count($registration) > 0) {
-				$registrationData = json_decode($registration[0]["EventUser"]["value"], true);
-			}
-			$tableData = array();
-			foreach ($candidateList["data"] as $key => $name) {
-				$tmpCells = array();
-				$tmpCells[] = $name;
-				if (isset($registrationData[$key])) {
-					$tmpCells[] = $registrationData[$key];
-				} else {
-					$tmpCells[] = "";
-				}
-
-				$tableData[$key] = $tmpCells;
-			}
-			$this->set('tableData', $tableData);
 
 		}
 	}

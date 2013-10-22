@@ -6,23 +6,6 @@ class CybozuLiveComponent extends Component {
  * @param unknown $oauthToken
  * @param unknown $oauthTokenSecret
  */
-	public function getUserinsfo($oauthToken, $oauthTokenSecret) {
-		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
-
-		$result = $oauth
-		->sendRequest('https://api.cybozulive.com/api/group/V2',
-				array(
-						"unconfirmed" => "true"
-				), 'GET');
-		$cybozu = $result->getBody();
-		$cybozulive = simplexml_load_string($cybozu);
-		return $cybozulive->author;
-	}
-/**
- * ユーザ情報を取得
- * @param unknown $oauthToken
- * @param unknown $oauthTokenSecret
- */
 	public function getUserInfo($oauthToken, $oauthTokenSecret) {
 		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
 		$result = $oauth
@@ -39,33 +22,34 @@ class CybozuLiveComponent extends Component {
  * @param unknown $oauthTokenSecret
  * @return multitype:string
  */
-	public function getGroupList($oauthToken, $oauthTokenSecret) {
-		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
-		$result = $oauth
-		->sendRequest('https://api.cybozulive.com/api/group/V2',
-				array(
-						"unconfirmed" => "true"
-				), 'GET');
-		$cybozu = $result->getBody();
-		$cybozulive = simplexml_load_string($cybozu);
+// 	public function getGroupList($oauthToken, $oauthTokenSecret) {
+// 		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
+// 		$result = $oauth
+// 		->sendRequest('https://api.cybozulive.com/api/group/V2',
+// 				array(
+// 						"unconfirmed" => "true"
+// 				), 'GET');
+// 		$cybozu = $result->getBody();
+// 		$cybozulive = simplexml_load_string($cybozu);
 
-		$groupList = array();
-		foreach ($cybozulive->entry as $group) {
-			$groupList[(string)$group->id] = (string)$group->title;
-		}
-		return $groupList;
-	}
+// 		$groupList = array();
+// 		foreach ($cybozulive->entry as $group) {
+// 			$groupList[(string)$group->id] = (string)$group->title;
+// 		}
+// 		return $groupList;
+// 	}
 
-	public function getGroupMember($oauthToken, $oauthTokenSecret, $groupId) {
+	public function getGroupMember($oauthToken, $oauthTokenSecret, $groupId, $max=100) {
 		$oauth = $this->__getOauth($oauthToken, $oauthTokenSecret);
 		$groupId = explode(",", $groupId);
 
 		$result = $oauth->sendRequest('https://api.cybozulive.com/api/gwMemberList/V2?group=' . $groupId[1] .
-				"&start-index=0&max-results=100",
+				"&start-index=0&max-results=" . $max,
 				array(
 						"unconfirmed" => "true"
 				), 'GET');
 		$cybozu = $result->getBody();
+
 		$cybozulive = simplexml_load_string($cybozu);
 
 		$groupMember = array();
@@ -77,9 +61,9 @@ class CybozuLiveComponent extends Component {
 				$groupMember["self"] = (string)$member->id;
 			}
 		}
-		if (count($groupMember) == 100) {
+		if (count($groupMember['member']) == $max) {
 			$result = $oauth->sendRequest('https://api.cybozulive.com/api/gwMemberList/V2?group=' . $groupId[1] .
-					"&start-index=100&max-results=100",
+					"&start-index=" . $max . "&max-results=" . $max,
 					array(
 							"unconfirmed" => "true"
 					), 'GET');

@@ -39,10 +39,9 @@ class AppController extends Controller {
 		parent::beforeFilter();
 
 		$this->Auth->loginAction = array('controller' => 'users', 'action' => 'login');
-		$this->Auth->loginRedirect = array('controller' => 'users', 'action' => 'logined');
+		$this->Auth->loginRedirect = array('controller' => 'events', 'action' => 'index');
 		$this->Auth->logoutRedirect = array('controller' => '/', 'action' => 'index');
 		$this->Auth->fields = array(
-				//'username' => 'user_uri',
 				'username' => 'uri',
 				'password' => 'password'
 		);

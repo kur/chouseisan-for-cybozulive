@@ -9,7 +9,23 @@ class User extends AppModel {
 
 	public $name = 'User';
 
-	public $primaryKey = 'uri';
+	public $hasAndBelongsToMany = array(
+		'Group' => array(
+			'className' => 'Group',
+			'joinTable' => 'group_users',
+			'foreignKey' => 'user_id',
+			'associationForeignKey' => 'group_id',
+			'unique' => true,
+			'conditions' => '',
+			'fields' => '',
+			'order' => '',
+			'limit' => '',
+			'offset' => '',
+			'finderQuery' => '',
+			'deleteQuery' => '',
+			'insertQuery' => ''
+		)
+	);
 
 	/**
 	 * ユーザの追加
@@ -21,18 +37,25 @@ class User extends AppModel {
 	 * @param unknown $oauthTokenSecret
 	 * @return Ambigous <mixed, boolean, multitype:>
 	 */
-	public function add($uri, $screenName, $groupList, $password, $oauthToken, $oauthTokenSecret) {
-		$data = array(
-			"User" => array(
-				"uri" => $uri,
-				"screen_name" => $screenName,
-				"group_list" => $groupList,
-				"password" => $password,
-				"oauth_token" => $oauthToken,
-				"oauth_token_secret" => $oauthTokenSecret
+	public function add($uri, $screenName, $groupIdList, $password, $oauthToken, $oauthTokenSecret) {
+		// 検索
+		$result = $this->find('first', array(
+			'conditions' => array(
+				'User.uri' => $uri
 			)
-		);
-		return $this->save($data);
+		));
+		if (empty($result)) {
+			$this->create();
+		}
+
+		// データを整形
+		$result['User']['uri'] = $uri;
+		$result['User']['screen_name'] = $screenName;
+		$result['User']['password'] = $password;
+		$result['User']['oauth_token'] = $oauthToken;
+		$result['User']['oauth_token_secret'] = $oauthTokenSecret;
+		$result['Group'] = $groupIdList;
+		return $this->save($result);
 	}
 
 	/**
@@ -50,10 +73,10 @@ class User extends AppModel {
 	 */
 	public function getInfo($userUri) {
 		$userinfo = $this->find('first', array(
-				'conditions' => array(
-					'User.uri' => $userUri
-				)
-			));
+			'conditions' => array(
+				'User.uri' => $userUri
+			)
+		));
 		return $userinfo;
 	}
 
@@ -63,8 +86,13 @@ class User extends AppModel {
 	 * @return mixed
 	 */
 	public function getGroupList($userUri) {
-		$userinfo = $this->getInfo($userUri);
-		return json_decode($userinfo["User"]["group_list"], true);
+		$result = $this->getInfo($userUri);
+		$groupList = array();
+		foreach ($result['Group'] as $group) {
+			$groupList[$group['id']] = $group['name'];
+		}
+
+		return $groupList;
 	}
 
 }
