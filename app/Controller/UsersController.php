@@ -32,6 +32,7 @@ class UsersController extends AppController {
 			'action' => 'home'
 		));
 	}
+
 	/**
 	 * ログイン
 	 */
@@ -51,6 +52,7 @@ class UsersController extends AppController {
 		$this->redirect($this->Auth->logout());
 		return true;
 	}
+
 	/**
 	 * サイボウズLive認証後の処理
 	 */
@@ -71,17 +73,18 @@ class UsersController extends AppController {
 		// 所属グループ取得
 		$groupList = array();
 		foreach ($userInfo->entry as $group) {
-			$groupList[(string) $group->id] = (string) $group->title;
+			$groupList[(string)$group->id] = (string)$group->title;
 		}
 		// グループ情報を登録
 		$groupIdList = $this->Group->add($groupList);
+
 		// CakePHP ACLログイン用のパスワードを生成
-		$userInfo->author->password = $this->Auth->password((string) $userInfo->author->uri);
+		$userInfo->author->password = $this->Auth->password((string)$userInfo->author->uri);
 
 		// ユーザとして登録
-		$uri = (string) $userInfo->author->uri;
-		$screenName = (string) $userInfo->author->name;
-		$password = (string) $userInfo->author->password;
+		$uri = (string)$userInfo->author->uri;
+		$screenName = (string)$userInfo->author->name;
+		$password = (string)$userInfo->author->password;
 		$oauthToken = $_SESSION['oauth_access_token'];
 		$oauthTokenSecret = $_SESSION['oauth_access_token_secret'];
 		$user = $this->User->add($uri, $screenName, $groupIdList, $password, $oauthToken, $oauthTokenSecret);
@@ -94,6 +97,7 @@ class UsersController extends AppController {
 			));
 		}
 	}
+
 	public function loginDirect() {
 		$user["User"] = $_POST;
 		return $this->Auth->login($user);

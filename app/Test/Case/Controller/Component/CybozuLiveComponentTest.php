@@ -10,7 +10,7 @@ class TestCybozuLiveController extends Controller {
 	public $paginate = null;
 }
 
-class PagematronComponentTest extends CakeTestCase {
+class CybozuLiveComponentTest extends CakeTestCase {
 
 	public $CybozuLiveComponent = null;
 
@@ -31,11 +31,10 @@ class PagematronComponentTest extends CakeTestCase {
 	 * ユーザの情報を取得する
 	 */
 	public function testGetUserInfo() {
-		$result = (array) $this->CybozuLiveComponent
-			->getUserInfo('63bc53c5df5e20dda4a9db5180012c90', '6aa4f2cb1ec524c6d08a27705c21aceb');
+		$result = (array)$this->CybozuLiveComponent->getUserInfo('b494ecdefb9b76fc60253b655b7d95cc',
+			'3e3c203129bdfafcc6e083f0273b5326');
 		$this->assertArrayHasKey('author', $result);
 		$this->assertArrayHasKey('entry', $result);
-
 	}
 
 	/**
@@ -43,25 +42,25 @@ class PagematronComponentTest extends CakeTestCase {
 	 */
 	public function testGetGroupMember() {
 		// グループメンバーの取得
-		$result = (array) $this->CybozuLiveComponent
-			->getGroupMember('63bc53c5df5e20dda4a9db5180012c90', '6aa4f2cb1ec524c6d08a27705c21aceb', 'GROUP,1:54658', 3);
-		debug($result);
+		$result = (array)$this->CybozuLiveComponent->getGroupMember('b494ecdefb9b76fc60253b655b7d95cc',
+			'3e3c203129bdfafcc6e083f0273b5326', 'GROUP,1:54658', 3);
 		$this->assertLessThanOrEqual(3 * 2, count($result['member']));
 		$this->assertArrayHasKey('member', $result);
 		$this->assertArrayHasKey('self', $result);
 		$this->assertGreaterThan(0, count($result['member']));
 
 		//存在しないグループを指定
-		$result = (array) $this->CybozuLiveComponent
-			->getGroupMember('63bc53c5df5e20dda4a9db5180012c90', '6aa4f2cb1ec524c6d08a27705c21aceb', 'GROUP,2:53953');
+		$result = (array)$this->CybozuLiveComponent->getGroupMember('b494ecdefb9b76fc60253b655b7d95cc',
+			'3e3c203129bdfafcc6e083f0273b5326', 'GROUP,2:53953');
 		$this->assertEqual(0, count($result['member']));
 	}
+
+	
 	public function testGetAuthorizationUrl() {
 		$result = $this->CybozuLiveComponent->getAuthorizationUrl();
-		debug($result);
 		$this->assertNotNull($result);
 	}
- 
+
 	public function tearDown() {
 		parent::tearDown();
 		// 終了した後のお掃除

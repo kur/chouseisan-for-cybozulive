@@ -27,7 +27,7 @@ echo $this->Menu->getMenu(0, $isLogin);
 	<?php
 	echo $this->Html->link(
 			"イベント一覧を見る",
-			array('controller' => 'users', 'action' => 'login'),
+			array('controller' => 'events', 'action' => 'index'),
 			array('class' => 'btn btn-large btn-success')
 	);
 	 

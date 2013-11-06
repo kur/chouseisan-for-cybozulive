@@ -83,7 +83,11 @@ class Group extends AppModel {
 				),
 				'recursive' => -1
 			));
-		return $result['Group']['uri'];
+		$res = -1;
+		if (count($result)) {
+			$res = $result['Group']['uri'];
+		}
+		return $res;
 
 	}
 	public function update($groupId, $groupName, $groupMemberList) {
@@ -91,7 +95,6 @@ class Group extends AppModel {
 		$groupData["Group"]["name"] = $groupName;
 		//		$groupData["Group"]["member_list"] = json_encode($groupMember);
 		$groupData["Profile"] = $groupMemberList;
-		debug($groupData);
 		return $this->save($groupData);
 	}
 }
